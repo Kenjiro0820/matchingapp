@@ -10,4 +10,5 @@ public interface GroupProfileRepository extends JpaRepository<GroupProfile, Long
     Optional<GroupProfile> findByOwnerUserId(Long ownerUserId);
     List<GroupProfile> findByStatus(String status);
     boolean existsByOwnerUserId(Long ownerUserId);
+    List<GroupProfile> findByStatusAndOwnerUserIdNot(String status, Long ownerUserId);
 }

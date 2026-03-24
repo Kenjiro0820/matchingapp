@@ -23,4 +23,6 @@ public interface SwipeActionRepository extends JpaRepository<SwipeAction, Long> 
     );
 
     List<SwipeAction> findByFromUserId(Long fromUserId);
+
+    List<SwipeAction> findByFromUserIdAndAction(Long fromUserId, String action);
 }

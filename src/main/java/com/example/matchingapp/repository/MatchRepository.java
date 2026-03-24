@@ -16,7 +16,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             Long groupProfileBId
     );
 
-    boolean existsByUserAIdAndUserBId(Long userAId, Long userBId);
-
-    boolean existsByUserBIdAndUserAId(Long userBId, Long userAId);
+    boolean existsByUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBIdOrUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBId(
+            Long userAId1,
+            Long userBId1,
+            Long groupProfileAId1,
+            Long groupProfileBId1,
+            Long userAId2,
+            Long userBId2,
+            Long groupProfileAId2,
+            Long groupProfileBId2
+    );
 }
