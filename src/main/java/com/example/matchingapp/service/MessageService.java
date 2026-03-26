@@ -52,6 +52,39 @@ public class MessageService {
         message.setSenderUserId(userId);
         message.setBody(request.getBody().trim());
         message.setIsRead(false);
+
         messageRepository.save(message);
+    }
+
+    public long countUnreadMessages(Long userId) {
+        List<Long> matchIds = matchRepository.findByUserAIdOrUserBIdOrderByMatchedAtDesc(userId, userId)
+                .stream()
+                .map(Match::getId)
+                .toList();
+
+        if (matchIds.isEmpty()) {
+            return 0L;
+        }
+
+        return messageRepository.countByMatchIdInAndSenderUserIdNotAndIsReadFalse(matchIds, userId);
+    }
+
+    public void markAsRead(Long userId, Long matchId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("マッチが存在しません"));
+
+        if (!match.getUserAId().equals(userId) && !match.getUserBId().equals(userId)) {
+            throw new IllegalArgumentException("権限がありません");
+        }
+
+        List<Message> unreadMessages =
+                messageRepository.findByMatchIdAndSenderUserIdNotAndIsReadFalse(matchId, userId);
+
+        if (unreadMessages.isEmpty()) {
+            return;
+        }
+
+        unreadMessages.forEach(message -> message.setIsRead(true));
+        messageRepository.saveAll(unreadMessages);
     }
 }

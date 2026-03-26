@@ -7,4 +7,8 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByMatchIdOrderByCreatedAtAsc(Long matchId);
+
+    long countByMatchIdInAndSenderUserIdNotAndIsReadFalse(List<Long> matchIds, Long senderUserId);
+
+    List<Message> findByMatchIdAndSenderUserIdNotAndIsReadFalse(Long matchId, Long senderUserId);
 }
