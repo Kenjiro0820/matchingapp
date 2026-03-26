@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -62,40 +64,76 @@ public class SwipeService {
                 continue;
             }
 
-            boolean alreadySwiped = swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
-                    userId,
-                    repProfile.getUserId(),
-                    myGroupProfile.getId(),
-                    groupProfile.getId()
-            );
+            boolean alreadySwiped =
+                    swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                            userId,
+                            repProfile.getUserId(),
+                            myGroupProfile.getId(),
+                            groupProfile.getId()
+                    );
 
             if (alreadySwiped) {
                 continue;
             }
 
-            responses.add(new SwipeCandidateResponse(
-                    repProfile.getUserId(),
-                    groupProfile.getId(),
-                    repProfile.getNickname(),
-                    repProfile.getProfileImageUrl(),
-                    repProfile.getBio(),
-                    repProfile.getAgeRange(),
-                    repProfile.getOccupation(),
-                    repProfile.getPersonalityTags(),
-                    repProfile.getPreferredArea(),
-                    groupProfile.getTitle(),
-                    groupProfile.getGroupImageUrl(),
-                    groupProfile.getIntroduction(),
-                    groupProfile.getArea(),
-                    groupProfile.getMaleCount(),
-                    groupProfile.getFemaleCount(),
-                    groupProfile.getAgeMin(),
-                    groupProfile.getAgeMax(),
-                    groupProfile.getBudgetPerPerson(),
-                    groupProfile.getMeetingStyle(),
-                    groupProfile.getAvailableDays(),
-                    groupProfile.getPreferredGroupDescription()
-            ));
+            responses.add(toSwipeCandidateResponse(repProfile, groupProfile));
+        }
+
+        return responses;
+    }
+
+    @Transactional(readOnly = true)
+    public List<SwipeCandidateResponse> getIncomingLikes(Long userId) {
+        validateUserExists(userId);
+        validateMyProfilesExist(userId);
+
+        GroupProfile myGroupProfile = getMyGroupProfile(userId);
+        List<SwipeAction> incomingLikes = swipeActionRepository.findByToUserIdAndActionOrderByIdDesc(userId, "LIKE");
+
+        List<SwipeCandidateResponse> responses = new ArrayList<>();
+        Set<Long> addedUserIds = new LinkedHashSet<>();
+
+        for (SwipeAction incomingLike : incomingLikes) {
+            if (addedUserIds.contains(incomingLike.getFromUserId())) {
+                continue;
+            }
+
+            boolean alreadyResponded =
+                    swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                            userId,
+                            incomingLike.getFromUserId(),
+                            myGroupProfile.getId(),
+                            incomingLike.getFromGroupProfileId()
+                    );
+
+            if (alreadyResponded) {
+                continue;
+            }
+
+            RepresentativeProfile repProfile =
+                    representativeProfileRepository.findByUserId(incomingLike.getFromUserId()).orElse(null);
+
+            if (repProfile == null || !Boolean.TRUE.equals(repProfile.getIsActive())) {
+                continue;
+            }
+
+            GroupProfile groupProfile =
+                    groupProfileRepository.findById(incomingLike.getFromGroupProfileId()).orElse(null);
+
+            if (groupProfile == null) {
+                continue;
+            }
+
+            if (!incomingLike.getFromUserId().equals(groupProfile.getOwnerUserId())) {
+                continue;
+            }
+
+            if (!"ACTIVE".equals(groupProfile.getStatus())) {
+                continue;
+            }
+
+            responses.add(toSwipeCandidateResponse(repProfile, groupProfile));
+            addedUserIds.add(incomingLike.getFromUserId());
         }
 
         return responses;
@@ -119,6 +157,7 @@ public class SwipeService {
         if (!"LIKE".equals(action) && !"NOPE".equals(action)) {
             throw new IllegalArgumentException("action は LIKE または NOPE を指定してください");
         }
+
         if (userId.equals(request.getTargetUserId())) {
             throw new IllegalArgumentException("自分自身にはスワイプできません");
         }
@@ -142,12 +181,14 @@ public class SwipeService {
         }
 
         GroupProfile myGroupProfile = getMyGroupProfile(userId);
-        boolean alreadySwiped = swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
-                userId,
-                request.getTargetUserId(),
-                myGroupProfile.getId(),
-                request.getTargetGroupProfileId()
-        );
+
+        boolean alreadySwiped =
+                swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                        userId,
+                        request.getTargetUserId(),
+                        myGroupProfile.getId(),
+                        request.getTargetGroupProfileId()
+                );
 
         if (alreadySwiped) {
             throw new IllegalArgumentException("すでにスワイプ済みです");
@@ -165,12 +206,13 @@ public class SwipeService {
             return new SwipeResultResponse(false, null, "スワイプを保存しました");
         }
 
-        SwipeAction reverseLike = swipeActionRepository.findByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
-                request.getTargetUserId(),
-                userId,
-                request.getTargetGroupProfileId(),
-                myGroupProfile.getId()
-        ).orElse(null);
+        SwipeAction reverseLike =
+                swipeActionRepository.findByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                        request.getTargetUserId(),
+                        userId,
+                        request.getTargetGroupProfileId(),
+                        myGroupProfile.getId()
+                ).orElse(null);
 
         if (reverseLike != null && "LIKE".equals(reverseLike.getAction())) {
             boolean alreadyMatched =
@@ -192,6 +234,7 @@ public class SwipeService {
                 match.setGroupProfileAId(myGroupProfile.getId());
                 match.setGroupProfileBId(request.getTargetGroupProfileId());
                 match.setStatus("MATCHED");
+
                 Match savedMatch = matchRepository.save(match);
                 return new SwipeResultResponse(true, savedMatch.getId(), "マッチしました");
             }
@@ -200,6 +243,35 @@ public class SwipeService {
         }
 
         return new SwipeResultResponse(false, null, "スワイプを保存しました");
+    }
+
+    private SwipeCandidateResponse toSwipeCandidateResponse(
+            RepresentativeProfile repProfile,
+            GroupProfile groupProfile
+    ) {
+        return new SwipeCandidateResponse(
+                repProfile.getUserId(),
+                groupProfile.getId(),
+                repProfile.getNickname(),
+                repProfile.getProfileImageUrl(),
+                repProfile.getBio(),
+                repProfile.getAgeRange(),
+                repProfile.getOccupation(),
+                repProfile.getPersonalityTags(),
+                repProfile.getPreferredArea(),
+                groupProfile.getTitle(),
+                groupProfile.getGroupImageUrl(),
+                groupProfile.getIntroduction(),
+                groupProfile.getArea(),
+                groupProfile.getMaleCount(),
+                groupProfile.getFemaleCount(),
+                groupProfile.getAgeMin(),
+                groupProfile.getAgeMax(),
+                groupProfile.getBudgetPerPerson(),
+                groupProfile.getMeetingStyle(),
+                groupProfile.getAvailableDays(),
+                groupProfile.getPreferredGroupDescription()
+        );
     }
 
     private void validateUserExists(Long userId) {

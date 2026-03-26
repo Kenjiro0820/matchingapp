@@ -3,9 +3,11 @@ package com.example.matchingapp.repository;
 import com.example.matchingapp.model.SwipeAction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SwipeActionRepository extends JpaRepository<SwipeAction, Long> {
+
     boolean existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
             Long fromUserId,
             Long toUserId,
@@ -19,4 +21,6 @@ public interface SwipeActionRepository extends JpaRepository<SwipeAction, Long> 
             Long fromGroupProfileId,
             Long toGroupProfileId
     );
+
+    List<SwipeAction> findByToUserIdAndActionOrderByIdDesc(Long toUserId, String action);
 }
