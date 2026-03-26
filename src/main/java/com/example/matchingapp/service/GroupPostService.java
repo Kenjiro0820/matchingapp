@@ -9,28 +9,31 @@ import java.util.List;
 @Service
 public class GroupPostService {
 
-    private final GroupPostRepository repository;
+    private final GroupPostRepository groupPostRepository;
 
-    public GroupPostService(GroupPostRepository repository) {
-        this.repository = repository;
+    public GroupPostService(GroupPostRepository groupPostRepository) {
+        this.groupPostRepository = groupPostRepository;
     }
 
     public GroupPost create(GroupPost post) {
-        post.setStatus("OPEN");
-        return repository.save(post);
+        if (post.getStatus() == null || post.getStatus().isBlank()) {
+            post.setStatus("OPEN");
+        }
+        return groupPostRepository.save(post);
     }
 
     public List<GroupPost> getAll() {
-        return repository.findAll();
+        return groupPostRepository.findAll();
     }
 
     public List<GroupPost> getMyPosts(Long userId) {
-        return repository.findByOrganizerUserId(userId);
+        return groupPostRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public void close(Long postId) {
-        GroupPost post = repository.findById(postId).orElseThrow();
+    public void close(Long id) {
+        GroupPost post = groupPostRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("投稿が存在しません"));
         post.setStatus("CLOSED");
-        repository.save(post);
+        groupPostRepository.save(post);
     }
 }

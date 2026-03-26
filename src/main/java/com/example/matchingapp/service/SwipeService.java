@@ -48,12 +48,12 @@ public class SwipeService {
         validateUserExists(userId);
         validateMyProfilesExist(userId);
 
+        GroupProfile myGroupProfile = getMyGroupProfile(userId);
         List<RepresentativeProfile> repProfiles = representativeProfileRepository.findByIsActiveTrueAndUserIdNot(userId);
         List<SwipeCandidateResponse> responses = new ArrayList<>();
 
         for (RepresentativeProfile repProfile : repProfiles) {
             GroupProfile groupProfile = groupProfileRepository.findByOwnerUserId(repProfile.getUserId()).orElse(null);
-
             if (groupProfile == null) {
                 continue;
             }
@@ -62,13 +62,12 @@ public class SwipeService {
                 continue;
             }
 
-            boolean alreadySwiped = swipeActionRepository
-                    .existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
-                            userId,
-                            repProfile.getUserId(),
-                            getMyGroupProfile(userId).getId(),
-                            groupProfile.getId()
-                    );
+            boolean alreadySwiped = swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                    userId,
+                    repProfile.getUserId(),
+                    myGroupProfile.getId(),
+                    groupProfile.getId()
+            );
 
             if (alreadySwiped) {
                 continue;
@@ -109,11 +108,9 @@ public class SwipeService {
         if (request.getTargetUserId() == null) {
             throw new IllegalArgumentException("targetUserId は必須です");
         }
-
         if (request.getTargetGroupProfileId() == null) {
             throw new IllegalArgumentException("targetGroupProfileId は必須です");
         }
-
         if (request.getAction() == null || request.getAction().trim().isEmpty()) {
             throw new IllegalArgumentException("action は必須です");
         }
@@ -122,7 +119,6 @@ public class SwipeService {
         if (!"LIKE".equals(action) && !"NOPE".equals(action)) {
             throw new IllegalArgumentException("action は LIKE または NOPE を指定してください");
         }
-
         if (userId.equals(request.getTargetUserId())) {
             throw new IllegalArgumentException("自分自身にはスワイプできません");
         }
@@ -146,14 +142,12 @@ public class SwipeService {
         }
 
         GroupProfile myGroupProfile = getMyGroupProfile(userId);
-
-        boolean alreadySwiped = swipeActionRepository
-                .existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
-                        userId,
-                        request.getTargetUserId(),
-                        myGroupProfile.getId(),
-                        request.getTargetGroupProfileId()
-                );
+        boolean alreadySwiped = swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                userId,
+                request.getTargetUserId(),
+                myGroupProfile.getId(),
+                request.getTargetGroupProfileId()
+        );
 
         if (alreadySwiped) {
             throw new IllegalArgumentException("すでにスワイプ済みです");
@@ -171,18 +165,16 @@ public class SwipeService {
             return new SwipeResultResponse(false, null, "スワイプを保存しました");
         }
 
-        SwipeAction reverseLike = swipeActionRepository
-                .findByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
-                        request.getTargetUserId(),
-                        userId,
-                        request.getTargetGroupProfileId(),
-                        myGroupProfile.getId()
-                )
-                .orElse(null);
+        SwipeAction reverseLike = swipeActionRepository.findByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+                request.getTargetUserId(),
+                userId,
+                request.getTargetGroupProfileId(),
+                myGroupProfile.getId()
+        ).orElse(null);
 
         if (reverseLike != null && "LIKE".equals(reverseLike.getAction())) {
-            boolean alreadyMatched = matchRepository
-                    .existsByUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBIdOrUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBId(
+            boolean alreadyMatched =
+                    matchRepository.existsByUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBIdOrUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBId(
                             userId,
                             request.getTargetUserId(),
                             myGroupProfile.getId(),
@@ -200,7 +192,6 @@ public class SwipeService {
                 match.setGroupProfileAId(myGroupProfile.getId());
                 match.setGroupProfileBId(request.getTargetGroupProfileId());
                 match.setStatus("MATCHED");
-
                 Match savedMatch = matchRepository.save(match);
                 return new SwipeResultResponse(true, savedMatch.getId(), "マッチしました");
             }

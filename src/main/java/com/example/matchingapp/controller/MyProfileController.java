@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/me")
-@CrossOrigin(origins = "http://localhost:5173")
 public class MyProfileController {
 
     private final MyProfileService myProfileService;
@@ -20,9 +19,7 @@ public class MyProfileController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<RepresentativeProfileResponse> getMyRepresentativeProfile(
-            @RequestParam Long userId
-    ) {
+    public ResponseEntity<RepresentativeProfileResponse> getMyRepresentativeProfile(@RequestParam Long userId) {
         return ResponseEntity.ok(myProfileService.getMyRepresentativeProfile(userId));
     }
 
@@ -35,9 +32,7 @@ public class MyProfileController {
     }
 
     @GetMapping("/group-profile")
-    public ResponseEntity<GroupProfileResponse> getMyGroupProfile(
-            @RequestParam Long userId
-    ) {
+    public ResponseEntity<GroupProfileResponse> getMyGroupProfile(@RequestParam Long userId) {
         return ResponseEntity.ok(myProfileService.getMyGroupProfile(userId));
     }
 
@@ -50,7 +45,7 @@ public class MyProfileController {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException exception) {
+        return ResponseEntity.badRequest().body(exception.getMessage());
     }
 }

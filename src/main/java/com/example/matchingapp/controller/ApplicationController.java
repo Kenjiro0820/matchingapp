@@ -17,8 +17,8 @@ public class ApplicationController {
     }
 
     @PostMapping
-    public PostApplication apply(@RequestBody PostApplication app) {
-        return service.apply(app);
+    public PostApplication apply(@RequestBody PostApplication application) {
+        return service.apply(application);
     }
 
     @GetMapping("/post/{postId}")

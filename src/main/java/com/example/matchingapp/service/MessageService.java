@@ -8,7 +8,6 @@ import com.example.matchingapp.repository.MatchRepository;
 import com.example.matchingapp.repository.MessageRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,17 +25,21 @@ public class MessageService {
     public List<MessageResponse> getMessages(Long matchId) {
         return messageRepository.findByMatchIdOrderByCreatedAtAsc(matchId)
                 .stream()
-                .map(m -> new MessageResponse(
-                        m.getId(),
-                        m.getSenderUserId(),
-                        m.getBody(),
-                        m.getIsRead(),
-                        m.getCreatedAt()
+                .map(message -> new MessageResponse(
+                        message.getId(),
+                        message.getSenderUserId(),
+                        message.getBody(),
+                        message.getIsRead(),
+                        message.getCreatedAt()
                 ))
                 .collect(Collectors.toList());
     }
 
     public void sendMessage(Long userId, Long matchId, MessageRequest request) {
+        if (request.getBody() == null || request.getBody().trim().isEmpty()) {
+            throw new IllegalArgumentException("メッセージ本文は必須です");
+        }
+
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new IllegalArgumentException("マッチが存在しません"));
 
@@ -47,10 +50,8 @@ public class MessageService {
         Message message = new Message();
         message.setMatchId(matchId);
         message.setSenderUserId(userId);
-        message.setBody(request.getBody());
+        message.setBody(request.getBody().trim());
         message.setIsRead(false);
-        message.setCreatedAt(LocalDateTime.now());
-
         messageRepository.save(message);
     }
 }

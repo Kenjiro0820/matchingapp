@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public class MatchResponse {
     private Long matchId;
     private Long otherUserId;
-    private String nickname;
-    private String profileImageUrl;
+    private String partnerName;
+    private String partnerImageUrl;
     private String groupTitle;
     private String area;
     private String status;

@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/matches")
-@CrossOrigin(origins = "http://localhost:5173")
 public class MatchController {
 
     private final MatchService matchService;
@@ -41,5 +40,10 @@ public class MatchController {
     ) {
         messageService.sendMessage(userId, matchId, request);
         return ResponseEntity.ok("送信しました");
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException exception) {
+        return ResponseEntity.badRequest().body(exception.getMessage());
     }
 }

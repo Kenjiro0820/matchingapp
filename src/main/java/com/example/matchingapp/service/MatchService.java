@@ -34,17 +34,9 @@ public class MatchService {
         List<MatchResponse> result = new ArrayList<>();
 
         for (Match match : matches) {
-            Long otherUserId = match.getUserAId().equals(userId)
-                    ? match.getUserBId()
-                    : match.getUserAId();
-
-            RepresentativeProfile rep = representativeProfileRepository
-                    .findByUserId(otherUserId)
-                    .orElse(null);
-
-            GroupProfile group = groupProfileRepository
-                    .findByOwnerUserId(otherUserId)
-                    .orElse(null);
+            Long otherUserId = match.getUserAId().equals(userId) ? match.getUserBId() : match.getUserAId();
+            RepresentativeProfile rep = representativeProfileRepository.findByUserId(otherUserId).orElse(null);
+            GroupProfile group = groupProfileRepository.findByOwnerUserId(otherUserId).orElse(null);
 
             result.add(new MatchResponse(
                     match.getId(),

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
-
     private final UserRepository userRepository;
 
     public AuthService(UserRepository userRepository) {
@@ -14,15 +13,19 @@ public class AuthService {
     }
 
     public User signup(User user) {
+        userRepository.findByEmail(user.getEmail()).ifPresent(existing -> {
+            throw new IllegalArgumentException("このメールアドレスはすでに登録されています");
+        });
+
         return userRepository.save(user);
     }
 
     public User login(String email, String password) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("ユーザーなし"));
+                .orElseThrow(() -> new IllegalArgumentException("ユーザーが見つかりません"));
 
         if (!user.getPassword().equals(password)) {
-            throw new RuntimeException("パスワード違う");
+            throw new IllegalArgumentException("パスワードが違います");
         }
 
         return user;

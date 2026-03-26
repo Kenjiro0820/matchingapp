@@ -8,6 +8,5 @@ import java.util.Optional;
 
 public interface RepresentativeProfileRepository extends JpaRepository<RepresentativeProfile, Long> {
     Optional<RepresentativeProfile> findByUserId(Long userId);
-    boolean existsByUserId(Long userId);
     List<RepresentativeProfile> findByIsActiveTrueAndUserIdNot(Long userId);
 }

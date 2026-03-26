@@ -1,7 +1,9 @@
 package com.example.matchingapp.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -9,17 +11,27 @@ import java.time.LocalDateTime;
 @Table(name = "group_posts")
 @Getter
 @Setter
+@NoArgsConstructor
 public class GroupPost {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long organizerUserId;
+    private Long userId;
     private String title;
-    private String description;
-    private String area;
-    private LocalDateTime scheduledAt;
 
-    private String status;
+    @Column(length = 3000)
+    private String body;
+
+    private String area;
+    private String status = "OPEN";
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

@@ -9,7 +9,7 @@ public class SwipeCandidateResponse {
     private Long targetUserId;
     private Long targetGroupProfileId;
     private String nickname;
-    private String profileImageUrl;
+    private String imageUrl;
     private String bio;
     private String ageRange;
     private String occupation;

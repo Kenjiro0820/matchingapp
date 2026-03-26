@@ -55,7 +55,7 @@ public class MyProfileService {
             throw new IllegalArgumentException("nickname は必須です");
         }
 
-        profile.setNickname(request.getNickname());
+        profile.setNickname(request.getNickname().trim());
         profile.setProfileImageUrl(request.getProfileImageUrl());
         profile.setBio(request.getBio());
         profile.setAgeRange(request.getAgeRange());
@@ -93,7 +93,7 @@ public class MyProfileService {
             throw new IllegalArgumentException("title は必須です");
         }
 
-        groupProfile.setTitle(request.getTitle());
+        groupProfile.setTitle(request.getTitle().trim());
         groupProfile.setGroupImageUrl(request.getGroupImageUrl());
         groupProfile.setIntroduction(request.getIntroduction());
         groupProfile.setArea(request.getArea());

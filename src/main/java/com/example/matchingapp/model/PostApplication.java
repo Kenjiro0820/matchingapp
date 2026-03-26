@@ -1,7 +1,9 @@
 package com.example.matchingapp.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -9,6 +11,7 @@ import java.time.LocalDateTime;
 @Table(name = "post_applications")
 @Getter
 @Setter
+@NoArgsConstructor
 public class PostApplication {
 
     @Id
@@ -17,9 +20,13 @@ public class PostApplication {
 
     private Long postId;
     private Long applicantUserId;
-    private String message;
-
-    private String status;
-
+    private String status = "PENDING";
     private LocalDateTime createdAt;
+
+    @PrePersist
+    public void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
