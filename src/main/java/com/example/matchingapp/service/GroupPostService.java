@@ -31,12 +31,13 @@ public class GroupPostService {
     }
 
     public List<GroupPost> getMyPosts(Long userId) {
-        return groupPostRepository.findByOrganizerUserIdOrderByCreatedAtDesc(userId);
+        return groupPostRepository.findByOrganizerUserIdAndStatusOrderByCreatedAtDesc(userId, "OPEN");
     }
 
     public void close(Long id) {
         GroupPost post = groupPostRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("投稿が存在しません"));
+
         post.setStatus("CLOSED");
         groupPostRepository.save(post);
     }

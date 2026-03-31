@@ -10,5 +10,7 @@ public interface GroupPostRepository extends JpaRepository<GroupPost, Long> {
 
     List<GroupPost> findByOrganizerUserIdOrderByCreatedAtDesc(Long organizerUserId);
 
+    List<GroupPost> findByOrganizerUserIdAndStatusOrderByCreatedAtDesc(Long organizerUserId, String status);
+
     List<GroupPost> findByStatusAndScheduledAtAfterOrderByScheduledAtAsc(String status, LocalDateTime now);
 }

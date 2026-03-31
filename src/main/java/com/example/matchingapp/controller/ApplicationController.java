@@ -31,6 +31,11 @@ public class ApplicationController {
         return service.getReceivedApplications(userId);
     }
 
+    @GetMapping("/my-active-post-ids")
+    public List<Long> getMyActivePostIds(@RequestParam Long userId) {
+        return service.getActiveAppliedPostIds(userId);
+    }
+
     @PostMapping("/{id}/approve")
     public void approve(@PathVariable Long id) {
         service.approve(id);

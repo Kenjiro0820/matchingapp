@@ -1,25 +1,38 @@
 package com.example.matchingapp.service;
 
 import com.example.matchingapp.model.GroupPost;
+import com.example.matchingapp.model.GroupProfile;
+import com.example.matchingapp.model.Match;
 import com.example.matchingapp.model.PostApplication;
 import com.example.matchingapp.repository.GroupPostRepository;
+import com.example.matchingapp.repository.GroupProfileRepository;
+import com.example.matchingapp.repository.MatchRepository;
 import com.example.matchingapp.repository.PostApplicationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
 
 @Service
+@Transactional
 public class ApplicationService {
 
     private final PostApplicationRepository postApplicationRepository;
     private final GroupPostRepository groupPostRepository;
+    private final GroupProfileRepository groupProfileRepository;
+    private final MatchRepository matchRepository;
 
     public ApplicationService(
             PostApplicationRepository postApplicationRepository,
-            GroupPostRepository groupPostRepository) {
+            GroupPostRepository groupPostRepository,
+            GroupProfileRepository groupProfileRepository,
+            MatchRepository matchRepository
+    ) {
         this.postApplicationRepository = postApplicationRepository;
         this.groupPostRepository = groupPostRepository;
+        this.groupProfileRepository = groupProfileRepository;
+        this.matchRepository = matchRepository;
     }
 
     public PostApplication apply(PostApplication application) {
@@ -30,7 +43,8 @@ public class ApplicationService {
         PostApplication latest = postApplicationRepository
                 .findTopByPostIdAndApplicantUserIdOrderByCreatedAtDesc(
                         application.getPostId(),
-                        application.getApplicantUserId())
+                        application.getApplicantUserId()
+                )
                 .orElse(null);
 
         if (latest != null) {
@@ -49,13 +63,14 @@ public class ApplicationService {
         return postApplicationRepository.save(application);
     }
 
+    @Transactional(readOnly = true)
     public List<PostApplication> getByPost(Long postId) {
         return postApplicationRepository.findByPostId(postId);
     }
 
+    @Transactional(readOnly = true)
     public List<PostApplication> getReceivedApplications(Long userId) {
         List<GroupPost> myPosts = groupPostRepository.findByOrganizerUserIdOrderByCreatedAtDesc(userId);
-
         if (myPosts.isEmpty()) {
             return Collections.emptyList();
         }
@@ -67,8 +82,68 @@ public class ApplicationService {
         return postApplicationRepository.findByPostIdInAndStatusOrderByCreatedAtDesc(postIds, "PENDING");
     }
 
+    @Transactional(readOnly = true)
+    public List<Long> getActiveAppliedPostIds(Long userId) {
+        List<PostApplication> applications = postApplicationRepository.findByApplicantUserIdOrderByCreatedAtDesc(userId);
+
+        List<Long> result = new java.util.ArrayList<>();
+        java.util.Set<Long> seenPostIds = new java.util.HashSet<>();
+
+        for (PostApplication application : applications) {
+            Long postId = application.getPostId();
+            if (postId == null || seenPostIds.contains(postId)) {
+                continue;
+            }
+
+            seenPostIds.add(postId);
+
+            if ("PENDING".equals(application.getStatus()) || "APPROVED".equals(application.getStatus())) {
+                result.add(postId);
+            }
+        }
+
+        return result;
+    }
+
     public void approve(Long id) {
-        updateStatus(id, "APPROVED");
+        PostApplication application = postApplicationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("応募が存在しません"));
+
+        GroupPost post = groupPostRepository.findById(application.getPostId())
+                .orElseThrow(() -> new IllegalArgumentException("募集が存在しません"));
+
+        GroupProfile organizerGroupProfile = groupProfileRepository.findByOwnerUserId(post.getOrganizerUserId())
+                .orElseThrow(() -> new IllegalArgumentException("主催者のグループプロフィールが存在しません"));
+
+        GroupProfile applicantGroupProfile = groupProfileRepository.findByOwnerUserId(application.getApplicantUserId())
+                .orElseThrow(() -> new IllegalArgumentException("応募者のグループプロフィールが存在しません"));
+
+        application.setStatus("APPROVED");
+        postApplicationRepository.save(application);
+
+        Match existingMatch = matchRepository.findExistingMatch(
+                post.getOrganizerUserId(),
+                application.getApplicantUserId(),
+                organizerGroupProfile.getId(),
+                applicantGroupProfile.getId(),
+                application.getApplicantUserId(),
+                post.getOrganizerUserId(),
+                applicantGroupProfile.getId(),
+                organizerGroupProfile.getId()
+        ).orElse(null);
+
+        if (existingMatch == null) {
+            Match match = new Match();
+            match.setUserAId(post.getOrganizerUserId());
+            match.setUserBId(application.getApplicantUserId());
+            match.setGroupProfileAId(organizerGroupProfile.getId());
+            match.setGroupProfileBId(applicantGroupProfile.getId());
+            match.setStatus("MATCHED");
+            matchRepository.save(match);
+        }
+
+        post.setStatus("CLOSED");
+        groupPostRepository.save(post);
     }
 
     public void reject(Long id) {
@@ -78,6 +153,7 @@ public class ApplicationService {
     private void updateStatus(Long id, String status) {
         PostApplication application = postApplicationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("応募が存在しません"));
+
         application.setStatus(status);
         postApplicationRepository.save(application);
     }
