@@ -20,6 +20,10 @@ public class PostApplication {
 
     private Long postId;
     private Long applicantUserId;
+
+    @Column(length = 3000)
+    private String message;
+
     private String status = "PENDING";
     private LocalDateTime createdAt;
 
@@ -27,6 +31,9 @@ public class PostApplication {
     public void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (status == null || status.isBlank()) {
+            status = "PENDING";
         }
     }
 }

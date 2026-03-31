@@ -18,20 +18,31 @@ public class GroupPost {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId;
+    @Column(name = "organizer_user_id", nullable = false)
+    private Long organizerUserId;
+
+    @Column(nullable = false)
     private String title;
 
     @Column(length = 3000)
-    private String body;
+    private String description;
 
     private String area;
+
+    @Column(nullable = false)
     private String status = "OPEN";
+
+    private LocalDateTime scheduledAt;
+
     private LocalDateTime createdAt;
 
     @PrePersist
     public void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (status == null || status.isBlank()) {
+            status = "OPEN";
         }
     }
 }

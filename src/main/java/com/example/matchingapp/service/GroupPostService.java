@@ -4,6 +4,7 @@ import com.example.matchingapp.model.GroupPost;
 import com.example.matchingapp.repository.GroupPostRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,11 +24,14 @@ public class GroupPostService {
     }
 
     public List<GroupPost> getAll() {
-        return groupPostRepository.findAll();
+        return groupPostRepository.findByStatusAndScheduledAtAfterOrderByScheduledAtAsc(
+                "OPEN",
+                LocalDateTime.now()
+        );
     }
 
     public List<GroupPost> getMyPosts(Long userId) {
-        return groupPostRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return groupPostRepository.findByOrganizerUserIdOrderByCreatedAtDesc(userId);
     }
 
     public void close(Long id) {
