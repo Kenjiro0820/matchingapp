@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface PostApplicationRepository extends JpaRepository<PostApplication, Long> {
     List<PostApplication> findByPostId(Long postId);
+
+    List<PostApplication> findByPostIdInOrderByCreatedAtDesc(List<Long> postIds);
 }

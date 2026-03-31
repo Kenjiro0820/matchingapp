@@ -1,18 +1,26 @@
 package com.example.matchingapp.service;
 
+import com.example.matchingapp.model.GroupPost;
 import com.example.matchingapp.model.PostApplication;
+import com.example.matchingapp.repository.GroupPostRepository;
 import com.example.matchingapp.repository.PostApplicationRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
 public class ApplicationService {
 
     private final PostApplicationRepository postApplicationRepository;
+    private final GroupPostRepository groupPostRepository;
 
-    public ApplicationService(PostApplicationRepository postApplicationRepository) {
+    public ApplicationService(
+            PostApplicationRepository postApplicationRepository,
+            GroupPostRepository groupPostRepository
+    ) {
         this.postApplicationRepository = postApplicationRepository;
+        this.groupPostRepository = groupPostRepository;
     }
 
     public PostApplication apply(PostApplication application) {
@@ -24,6 +32,20 @@ public class ApplicationService {
 
     public List<PostApplication> getByPost(Long postId) {
         return postApplicationRepository.findByPostId(postId);
+    }
+
+    public List<PostApplication> getReceivedApplications(Long userId) {
+        List<GroupPost> myPosts = groupPostRepository.findByOrganizerUserIdOrderByCreatedAtDesc(userId);
+
+        if (myPosts.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> postIds = myPosts.stream()
+                .map(GroupPost::getId)
+                .toList();
+
+        return postApplicationRepository.findByPostIdInOrderByCreatedAtDesc(postIds);
     }
 
     public void approve(Long id) {
