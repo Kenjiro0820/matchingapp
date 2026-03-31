@@ -36,8 +36,7 @@ public class SwipeService {
             RepresentativeProfileRepository representativeProfileRepository,
             GroupProfileRepository groupProfileRepository,
             SwipeActionRepository swipeActionRepository,
-            MatchRepository matchRepository
-    ) {
+            MatchRepository matchRepository) {
         this.userRepository = userRepository;
         this.representativeProfileRepository = representativeProfileRepository;
         this.groupProfileRepository = groupProfileRepository;
@@ -51,7 +50,8 @@ public class SwipeService {
         validateMyProfilesExist(userId);
 
         GroupProfile myGroupProfile = getMyGroupProfile(userId);
-        List<RepresentativeProfile> repProfiles = representativeProfileRepository.findByIsActiveTrueAndUserIdNot(userId);
+        List<RepresentativeProfile> repProfiles = representativeProfileRepository
+                .findByIsActiveTrueAndUserIdNot(userId);
         List<SwipeCandidateResponse> responses = new ArrayList<>();
 
         for (RepresentativeProfile repProfile : repProfiles) {
@@ -64,13 +64,12 @@ public class SwipeService {
                 continue;
             }
 
-            boolean alreadySwiped =
-                    swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+            boolean alreadySwiped = swipeActionRepository
+                    .existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
                             userId,
                             repProfile.getUserId(),
                             myGroupProfile.getId(),
-                            groupProfile.getId()
-                    );
+                            groupProfile.getId());
 
             if (alreadySwiped) {
                 continue;
@@ -98,27 +97,26 @@ public class SwipeService {
                 continue;
             }
 
-            boolean alreadyResponded =
-                    swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+            boolean alreadyResponded = swipeActionRepository
+                    .existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
                             userId,
                             incomingLike.getFromUserId(),
                             myGroupProfile.getId(),
-                            incomingLike.getFromGroupProfileId()
-                    );
+                            incomingLike.getFromGroupProfileId());
 
             if (alreadyResponded) {
                 continue;
             }
 
-            RepresentativeProfile repProfile =
-                    representativeProfileRepository.findByUserId(incomingLike.getFromUserId()).orElse(null);
+            RepresentativeProfile repProfile = representativeProfileRepository
+                    .findByUserId(incomingLike.getFromUserId()).orElse(null);
 
             if (repProfile == null || !Boolean.TRUE.equals(repProfile.getIsActive())) {
                 continue;
             }
 
-            GroupProfile groupProfile =
-                    groupProfileRepository.findById(incomingLike.getFromGroupProfileId()).orElse(null);
+            GroupProfile groupProfile = groupProfileRepository.findById(incomingLike.getFromGroupProfileId())
+                    .orElse(null);
 
             if (groupProfile == null) {
                 continue;
@@ -182,13 +180,12 @@ public class SwipeService {
 
         GroupProfile myGroupProfile = getMyGroupProfile(userId);
 
-        boolean alreadySwiped =
-                swipeActionRepository.existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+        boolean alreadySwiped = swipeActionRepository
+                .existsByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
                         userId,
                         request.getTargetUserId(),
                         myGroupProfile.getId(),
-                        request.getTargetGroupProfileId()
-                );
+                        request.getTargetGroupProfileId());
 
         if (alreadySwiped) {
             throw new IllegalArgumentException("すでにスワイプ済みです");
@@ -206,40 +203,38 @@ public class SwipeService {
             return new SwipeResultResponse(false, null, "スワイプを保存しました");
         }
 
-        SwipeAction reverseLike =
-                swipeActionRepository.findByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
+        SwipeAction reverseLike = swipeActionRepository
+                .findByFromUserIdAndToUserIdAndFromGroupProfileIdAndToGroupProfileId(
                         request.getTargetUserId(),
                         userId,
                         request.getTargetGroupProfileId(),
-                        myGroupProfile.getId()
-                ).orElse(null);
+                        myGroupProfile.getId())
+                .orElse(null);
 
         if (reverseLike != null && "LIKE".equals(reverseLike.getAction())) {
-            boolean alreadyMatched =
-                    matchRepository.existsByUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBIdOrUserAIdAndUserBIdAndGroupProfileAIdAndGroupProfileBId(
-                            userId,
-                            request.getTargetUserId(),
-                            myGroupProfile.getId(),
-                            request.getTargetGroupProfileId(),
-                            request.getTargetUserId(),
-                            userId,
-                            request.getTargetGroupProfileId(),
-                            myGroupProfile.getId()
-                    );
+            Match existingMatch = matchRepository.findExistingMatch(
+                    userId,
+                    request.getTargetUserId(),
+                    myGroupProfile.getId(),
+                    request.getTargetGroupProfileId(),
+                    request.getTargetUserId(),
+                    userId,
+                    request.getTargetGroupProfileId(),
+                    myGroupProfile.getId()).orElse(null);
 
-            if (!alreadyMatched) {
-                Match match = new Match();
-                match.setUserAId(userId);
-                match.setUserBId(request.getTargetUserId());
-                match.setGroupProfileAId(myGroupProfile.getId());
-                match.setGroupProfileBId(request.getTargetGroupProfileId());
-                match.setStatus("MATCHED");
-
-                Match savedMatch = matchRepository.save(match);
-                return new SwipeResultResponse(true, savedMatch.getId(), "マッチしました");
+            if (existingMatch != null) {
+                return new SwipeResultResponse(true, existingMatch.getId(), "すでにマッチ済みです");
             }
 
-            return new SwipeResultResponse(true, null, "すでにマッチ済みです");
+            Match match = new Match();
+            match.setUserAId(userId);
+            match.setUserBId(request.getTargetUserId());
+            match.setGroupProfileAId(myGroupProfile.getId());
+            match.setGroupProfileBId(request.getTargetGroupProfileId());
+            match.setStatus("MATCHED");
+
+            Match savedMatch = matchRepository.save(match);
+            return new SwipeResultResponse(true, savedMatch.getId(), "マッチしました");
         }
 
         return new SwipeResultResponse(false, null, "スワイプを保存しました");
@@ -247,8 +242,7 @@ public class SwipeService {
 
     private SwipeCandidateResponse toSwipeCandidateResponse(
             RepresentativeProfile repProfile,
-            GroupProfile groupProfile
-    ) {
+            GroupProfile groupProfile) {
         return new SwipeCandidateResponse(
                 repProfile.getUserId(),
                 groupProfile.getId(),
@@ -270,8 +264,7 @@ public class SwipeService {
                 groupProfile.getBudgetPerPerson(),
                 groupProfile.getMeetingStyle(),
                 groupProfile.getAvailableDays(),
-                groupProfile.getPreferredGroupDescription()
-        );
+                groupProfile.getPreferredGroupDescription());
     }
 
     private void validateUserExists(Long userId) {
