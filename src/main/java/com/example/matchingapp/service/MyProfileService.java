@@ -33,21 +33,23 @@ public class MyProfileService {
 
     @Transactional(readOnly = true)
     public RepresentativeProfileResponse getMyRepresentativeProfile(Long userId) {
-        validateUserExists(userId);
+        User user = getUserOrThrow(userId);
 
         RepresentativeProfile profile = representativeProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("代表者プロフィールが存在しません"));
+                .orElseGet(() -> createDefaultRepresentativeProfile(user));
 
         return toRepresentativeProfileResponse(profile);
     }
 
     public RepresentativeProfileResponse upsertMyRepresentativeProfile(Long userId, RepresentativeProfileRequest request) {
-        validateUserExists(userId);
+        User user = getUserOrThrow(userId);
 
         RepresentativeProfile profile = representativeProfileRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     RepresentativeProfile newProfile = new RepresentativeProfile();
                     newProfile.setUserId(userId);
+                    newProfile.setNickname(user.getName());
+                    newProfile.setIsActive(true);
                     return newProfile;
                 });
 
@@ -71,21 +73,25 @@ public class MyProfileService {
 
     @Transactional(readOnly = true)
     public GroupProfileResponse getMyGroupProfile(Long userId) {
-        validateUserExists(userId);
+        User user = getUserOrThrow(userId);
 
         GroupProfile groupProfile = groupProfileRepository.findByOwnerUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("グループプロフィールが存在しません"));
+                .orElseGet(() -> createDefaultGroupProfile(user));
 
         return toGroupProfileResponse(groupProfile);
     }
 
     public GroupProfileResponse upsertMyGroupProfile(Long userId, GroupProfileRequest request) {
-        validateUserExists(userId);
+        User user = getUserOrThrow(userId);
 
         GroupProfile groupProfile = groupProfileRepository.findByOwnerUserId(userId)
                 .orElseGet(() -> {
                     GroupProfile newGroupProfile = new GroupProfile();
                     newGroupProfile.setOwnerUserId(userId);
+                    newGroupProfile.setTitle(user.getName() + "さんのグループ");
+                    newGroupProfile.setStatus("ACTIVE");
+                    newGroupProfile.setMaleCount(0);
+                    newGroupProfile.setFemaleCount(0);
                     return newGroupProfile;
                 });
 
@@ -114,13 +120,52 @@ public class MyProfileService {
         return toGroupProfileResponse(saved);
     }
 
-    private void validateUserExists(Long userId) {
+    private User getUserOrThrow(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("ユーザーが存在しません"));
 
         if (user.getId() == null) {
             throw new IllegalArgumentException("ユーザーが不正です");
         }
+
+        return user;
+    }
+
+    private RepresentativeProfile createDefaultRepresentativeProfile(User user) {
+        RepresentativeProfile profile = new RepresentativeProfile();
+        profile.setUserId(user.getId());
+        profile.setNickname(user.getName());
+        profile.setProfileImageUrl(null);
+        profile.setBio(null);
+        profile.setAgeRange(null);
+        profile.setOccupation(null);
+        profile.setDrinkingLevel(null);
+        profile.setPersonalityTags(null);
+        profile.setPreferredArea(null);
+        profile.setIsActive(true);
+        return representativeProfileRepository.save(profile);
+    }
+
+    private GroupProfile createDefaultGroupProfile(User user) {
+        GroupProfile groupProfile = new GroupProfile();
+        groupProfile.setOwnerUserId(user.getId());
+        groupProfile.setTitle(user.getName() + "さんのグループ");
+        groupProfile.setGroupImageUrl(null);
+        groupProfile.setIntroduction(null);
+        groupProfile.setArea(null);
+        groupProfile.setPreferredArea(null);
+        groupProfile.setMaleCount(0);
+        groupProfile.setFemaleCount(0);
+        groupProfile.setAgeMin(null);
+        groupProfile.setAgeMax(null);
+        groupProfile.setPreferredAgeMin(null);
+        groupProfile.setPreferredAgeMax(null);
+        groupProfile.setBudgetPerPerson(null);
+        groupProfile.setMeetingStyle(null);
+        groupProfile.setAvailableDays(null);
+        groupProfile.setPreferredGroupDescription(null);
+        groupProfile.setStatus("ACTIVE");
+        return groupProfileRepository.save(groupProfile);
     }
 
     private RepresentativeProfileResponse toRepresentativeProfileResponse(RepresentativeProfile profile) {
