@@ -17,16 +17,35 @@ public class ApplicationService {
 
     public ApplicationService(
             PostApplicationRepository postApplicationRepository,
-            GroupPostRepository groupPostRepository
-    ) {
+            GroupPostRepository groupPostRepository) {
         this.postApplicationRepository = postApplicationRepository;
         this.groupPostRepository = groupPostRepository;
     }
 
     public PostApplication apply(PostApplication application) {
+        if (application.getPostId() == null || application.getApplicantUserId() == null) {
+            throw new IllegalArgumentException("応募情報が不正です");
+        }
+
+        PostApplication latest = postApplicationRepository
+                .findTopByPostIdAndApplicantUserIdOrderByCreatedAtDesc(
+                        application.getPostId(),
+                        application.getApplicantUserId())
+                .orElse(null);
+
+        if (latest != null) {
+            if ("PENDING".equals(latest.getStatus())) {
+                throw new IllegalArgumentException("この募集にはすでに応募済みです");
+            }
+            if ("APPROVED".equals(latest.getStatus())) {
+                throw new IllegalArgumentException("この募集への応募は承認済みです");
+            }
+        }
+
         if (application.getStatus() == null || application.getStatus().isBlank()) {
             application.setStatus("PENDING");
         }
+
         return postApplicationRepository.save(application);
     }
 
@@ -45,7 +64,7 @@ public class ApplicationService {
                 .map(GroupPost::getId)
                 .toList();
 
-        return postApplicationRepository.findByPostIdInOrderByCreatedAtDesc(postIds);
+        return postApplicationRepository.findByPostIdInAndStatusOrderByCreatedAtDesc(postIds, "PENDING");
     }
 
     public void approve(Long id) {
